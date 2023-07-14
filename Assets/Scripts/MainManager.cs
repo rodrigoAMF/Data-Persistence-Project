@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -10,6 +12,7 @@ public class MainManager : MonoBehaviour
     public int LineCount = 6;
     public Rigidbody Ball;
 
+    public Text PlayerNameText;
     public Text ScoreText;
     public GameObject GameOverText;
     
@@ -18,10 +21,19 @@ public class MainManager : MonoBehaviour
     
     private bool m_GameOver = false;
 
+    private string playerNameBestScore = "Player";
+    private int scoreBestScore = 0;
     
+    [System.Serializable]
+    class ScoreboardData {
+        public string playerName;
+        public int score;
+    }
     // Start is called before the first frame update
     void Start()
     {
+        LoadBestScore();
+        PlayerNameText.text = $"Best Score: {playerNameBestScore}: {scoreBestScore}";
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -72,5 +84,28 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+
+        if (m_Points > scoreBestScore)
+            SaveScoreboard();
+    }
+
+    public void SaveScoreboard() {
+        ScoreboardData scoreboardData = new ScoreboardData();
+        scoreboardData.score = m_Points;
+        scoreboardData.playerName = DataManager.Instance.playerName;
+
+        string json = JsonUtility.ToJson(scoreboardData);
+        File.WriteAllText($"{Application.persistentDataPath}/scoreboard.json", json);
+    }
+
+    public void LoadBestScore() {
+        string path = $"{Application.persistentDataPath}/scoreboard.json";
+        if (File.Exists(path)) {
+            string json = File.ReadAllText(path);
+            ScoreboardData bestScoreData = JsonUtility.FromJson<ScoreboardData>(json);
+
+            playerNameBestScore = bestScoreData.playerName;
+            scoreBestScore = bestScoreData.score;
+        }
     }
 }
